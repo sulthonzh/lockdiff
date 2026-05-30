@@ -1,0 +1,25 @@
+{
+  "name": "lockdiff",
+  "version": "1.0.0",
+  "description": "See dependency changes between git refs at a glance — perfect for code reviews",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "lockdiff": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["lockfile", "diff", "dependencies", "npm", "git", "code-review"],
+  "author": "sulthonzh",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}
