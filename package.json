@@ -1,0 +1,12 @@
+{
+  "name": "lockdiff",
+  "version": "1.0.0",
+  "description": "Compare package-lock.json between git refs — see exactly what changed in your dependencies",
+  "main": "src/index.js",
+  "bin": { "lockdiff": "src/cli.js" },
+  "scripts": { "test": "node test/index.test.js" },
+  "keywords": ["lockfile", "diff", "npm", "dependencies", "code-review", "package-lock"],
+  "author": "sulthonzh",
+  "license": "MIT",
+  "engines": { "node": ">=14" }
+}
