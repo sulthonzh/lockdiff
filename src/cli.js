@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 'use strict';
-const { compare, findLastTag, formatText, formatJSON, formatMarkdown } = require('./index');
+const { compare, findLastTag, formatText, formatJSON, formatMarkdown, formatGrouped, formatCompact } = require('./index');
 
 function main() {
   const args = process.argv.slice(2);
   const cwd = process.cwd();
-  const opts = { json: false, markdown: false, verbose: false, lockfile: null, since: false };
+  const opts = { json: false, markdown: false, verbose: false, lockfile: null, since: false, group: false, compact: false, ci: false };
   const positional = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--json') opts.json = true;
@@ -13,6 +13,9 @@ function main() {
     else if (args[i] === '--verbose' || args[i] === '-v') opts.verbose = true;
     else if (args[i] === '--lockfile' && args[i+1]) { opts.lockfile = args[++i]; }
     else if (args[i] === '--since') opts.since = true;
+    else if (args[i] === '--group') opts.group = true;
+    else if (args[i] === '--compact') opts.compact = true;
+    else if (args[i] === '--ci') opts.ci = true;
     else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
 lockdiff — compare package-lock.json between git refs
@@ -30,8 +33,11 @@ Usage:
 Options:
   --json          JSON output
   --markdown      Markdown output
+  --compact       One line per change
+  --group         Group by dependency type (prod/dev/optional)
   --lockfile <f>  Custom lockfile (default: auto-detect)
   --since         Compare last git tag vs HEAD
+  --ci            Exit 0 only if no changes (for CI pipelines)
   --verbose       Show more detail
   -h, --help      Show help
 
@@ -40,7 +46,9 @@ Examples:
   lockdiff HEAD~1                What the last commit changed
   lockdiff v1.0.0..v2.0.0        Changes between two tags
   lockdiff --since               Changes since last release tag
-  lockdiff main --json           Machine-readable for CI
+  lockdiff main --group          Grouped by prod/dev/optional
+  lockdiff main --compact        One line per package
+  lockdiff main --ci             Exit 0 if clean, 1 if changed
 `.trim());
       process.exit(0);
     } else if (!args[i].startsWith('-')) positional.push(args[i]);
@@ -64,10 +72,15 @@ Examples:
 
   try {
     const result = compare({ refA, refB, lockfile: opts.lockfile, cwd, verbose: opts.verbose });
+    const totalChanges = result.summary.added + result.summary.removed + result.summary.changed;
+
     if (opts.json) console.log(formatJSON(result));
     else if (opts.markdown) console.log(formatMarkdown(result));
+    else if (opts.group) console.log(formatGrouped(result));
+    else if (opts.compact) console.log(formatCompact(result));
     else console.log(formatText(result));
-    process.exit(result.summary.added + result.summary.removed + result.summary.changed > 0 ? 1 : 0);
+
+    if (opts.ci) process.exit(totalChanges > 0 ? 1 : 0);
   } catch (err) {
     console.error(`Error: ${err.message}`);
     process.exit(2);

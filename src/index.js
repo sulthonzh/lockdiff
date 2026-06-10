@@ -102,6 +102,84 @@ function compare({ refA, refB, lockfile, cwd, verbose }) {
   };
 }
 
+// Group deps by type: production, dev, optional
+function groupDeps(deps) {
+  const groups = { production: {}, dev: {}, optional: {} };
+  for (const [name, info] of Object.entries(deps)) {
+    if (info.optional) groups.optional[name] = info;
+    else if (info.dev) groups.dev[name] = info;
+    else groups.production[name] = info;
+  }
+  return groups;
+}
+
+// Format grouped result
+function formatGrouped(result) {
+  const { added, removed, changed, summary } = result;
+  const total = summary.added + summary.removed + summary.changed;
+  if (total === 0) return '✓ No dependency changes between the two refs.';
+
+  const lines = [`Dependencies: +${summary.added} added, -${summary.removed} removed, ~${summary.changed} changed`];
+  const types = [
+    { label: 'Production', prefix: 'prod', color: '' },
+    { label: 'Dev', prefix: 'dev', color: '' },
+    { label: 'Optional', prefix: 'opt', color: '' },
+  ];
+
+  for (const { label } of types) {
+    const sectionLines = [];
+    const key = label.toLowerCase();
+
+    // Added in this group
+    const addedHere = Object.entries(added).filter(([, i]) =>
+      key === 'optional' ? i.optional : key === 'dev' ? i.dev && !i.optional : !i.dev && !i.optional
+    );
+    const removedHere = Object.entries(removed).filter(([, i]) =>
+      key === 'optional' ? i.optional : key === 'dev' ? i.dev && !i.optional : !i.dev && !i.optional
+    );
+    const changedHere = Object.entries(changed).filter(([, i]) =>
+      key === 'optional' ? (i.to.optional || i.from.optional) : key === 'dev' ? (i.to.dev || i.from.dev) && !(i.to.optional || i.from.optional) : !(i.to.dev || i.from.dev) && !(i.to.optional || i.from.optional)
+    );
+
+    const count = addedHere.length + removedHere.length + changedHere.length;
+    if (count === 0) continue;
+
+    lines.push('');
+    lines.push(`${label} (${count} change${count !== 1 ? 's' : ''}):`);
+
+    for (const [n, i] of addedHere.sort((a, b) => a[0].localeCompare(b[0])))
+      sectionLines.push(`  + ${n}@${i.version}`);
+    for (const [n, i] of removedHere.sort((a, b) => a[0].localeCompare(b[0])))
+      sectionLines.push(`  - ${n}@${i.version}`);
+    for (const [n, i] of changedHere.sort((a, b) => a[0].localeCompare(b[0]))) {
+      const arrow = isUpgrade(i.from.version, i.to.version) ? '↑' : '↓';
+      const integrityTag = i.from.integrity !== i.to.integrity && i.from.version === i.to.version ? ' (integrity)' : '';
+      sectionLines.push(`  ${arrow} ${n} ${i.from.version} → ${i.to.version}${integrityTag}`);
+    }
+    lines.push(...sectionLines);
+  }
+
+  return lines.join('\n');
+}
+
+// Compact format: one line per change
+function formatCompact(result) {
+  const { added, removed, changed, summary } = result;
+  const total = summary.added + summary.removed + summary.changed;
+  if (total === 0) return '✓ No changes.';
+
+  const lines = [];
+  for (const [n, i] of Object.entries(added).sort((a, b) => a[0].localeCompare(b[0])))
+    lines.push(`+ ${n}@${i.version}`);
+  for (const [n, i] of Object.entries(removed).sort((a, b) => a[0].localeCompare(b[0])))
+    lines.push(`- ${n}@${i.version}`);
+  for (const [n, i] of Object.entries(changed).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const arrow = isUpgrade(i.from.version, i.to.version) ? '↑' : '↓';
+    lines.push(`${arrow} ${n} ${i.from.version} → ${i.to.version}`);
+  }
+  return lines.join('\n');
+}
+
 // Formatters
 function formatText(result) {
   const { added, removed, changed, summary } = result;
@@ -160,4 +238,4 @@ function formatMarkdown(result) {
   return lines.join('\n');
 }
 
-module.exports = { compare, extractDeps, diffDeps, isUpgrade, detectLockfile, findLastTag, formatText, formatJSON, formatMarkdown };
+module.exports = { compare, extractDeps, diffDeps, isUpgrade, detectLockfile, findLastTag, formatText, formatJSON, formatMarkdown, formatGrouped, formatCompact, groupDeps };
