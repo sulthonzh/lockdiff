@@ -19,7 +19,7 @@ function extractDeps(lockfile) {
   if (!lockfile || !lockfile.packages) return {};
   const deps = {};
   for (const [pkgPath, info] of Object.entries(lockfile.packages)) {
-    if (!pkgPath || pkgPath === '') continue;
+    if (!pkgPath) continue;
     const parts = pkgPath.split('node_modules/');
     const name = parts[parts.length - 1];
     if (!name) continue;
@@ -102,7 +102,6 @@ function compare({ refA, refB, lockfile, cwd, verbose }) {
   };
 }
 
-// Group deps by type: production, dev, optional
 function groupDeps(deps) {
   const groups = { production: {}, dev: {}, optional: {} };
   for (const [name, info] of Object.entries(deps)) {
@@ -113,7 +112,6 @@ function groupDeps(deps) {
   return groups;
 }
 
-// Format grouped result
 function formatGrouped(result) {
   const { added, removed, changed, summary } = result;
   const total = summary.added + summary.removed + summary.changed;
@@ -130,7 +128,6 @@ function formatGrouped(result) {
     const sectionLines = [];
     const key = label.toLowerCase();
 
-    // Added in this group
     const addedHere = Object.entries(added).filter(([, i]) =>
       key === 'optional' ? i.optional : key === 'dev' ? i.dev && !i.optional : !i.dev && !i.optional
     );
@@ -162,7 +159,6 @@ function formatGrouped(result) {
   return lines.join('\n');
 }
 
-// Compact format: one line per change
 function formatCompact(result) {
   const { added, removed, changed, summary } = result;
   const total = summary.added + summary.removed + summary.changed;
@@ -180,7 +176,6 @@ function formatCompact(result) {
   return lines.join('\n');
 }
 
-// Formatters
 function formatText(result) {
   const { added, removed, changed, summary } = result;
   const total = summary.added + summary.removed + summary.changed;
