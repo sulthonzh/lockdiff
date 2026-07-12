@@ -7,7 +7,8 @@
     "lockdiff": "src/cli.js"
   },
   "scripts": {
-    "test": "node test/index.test.js"
+    "test": "node test/index.test.js",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "lockfile",
@@ -25,5 +26,8 @@
   "files": [
     "src",
     "bin"
-  ]
+  ],
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
+  }
 }
